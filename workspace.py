@@ -2,7 +2,7 @@
 #  from deepo.generator.generate import generate, _import
 #  from deepo.generator.modules import pytorch
 
-from src.__main__ import *
+from repo2docker.__main__ import *
 generate("https://github.com/norvig/pytudes")
 
 
