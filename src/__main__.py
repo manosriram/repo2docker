@@ -225,7 +225,7 @@ def get_argparser():
 argparser = get_argparser()
 
 
-def make_r2d(argv=None):
+def make_r2d(repo, argv=None):
     if argv is None:
         argv = sys.argv[1:]
 
@@ -235,7 +235,10 @@ def make_r2d(argv=None):
         print(__version__)
         sys.exit(0)
 
-    args = get_argparser().parse_args(argv)
+    args = get_argparser().parse_args(args={
+        repo
+    })
+    print(args)
 
     r2d = Repo2Docker()
 
@@ -371,8 +374,8 @@ def make_r2d(argv=None):
     return r2d
 
 
-def main():
-    r2d = make_r2d()
+def generate(repo):
+    r2d = make_r2d(repo)
     r2d.initialize()
     try:
         r2d.start()
@@ -389,4 +392,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    generate(repo)
