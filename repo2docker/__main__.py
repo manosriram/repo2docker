@@ -80,7 +80,8 @@ def get_argparser():
     )
 
     argparser.add_argument(
-        "repo",
+        "-repo",
+        nargs='?',
         help=(
             "Path to repository that should be built. Could be "
             "local path or a git URL."
@@ -235,10 +236,7 @@ def make_r2d(repo, argv=None):
         print(__version__)
         sys.exit(0)
 
-    args = get_argparser().parse_args(args={
-        repo
-    })
-    print(args)
+    args = get_argparser().parse_args(['-repo', repo])
 
     r2d = Repo2Docker()
 
