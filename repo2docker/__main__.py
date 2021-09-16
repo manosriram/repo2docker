@@ -6,7 +6,7 @@ from .app import Repo2Docker
 from .engine import BuildError, ImageLoadError
 from . import __version__
 from .utils import validate_and_generate_port_mapping, is_valid_docker_image_name
-
+from argparse import Namespace
 
 def validate_image_name(image_name):
     """
@@ -126,6 +126,7 @@ def get_argparser():
 
     argparser.add_argument(
         "--no-run",
+        default=True,
         dest="run",
         action="store_false",
         help="Do not run container after it has been built",
@@ -236,13 +237,14 @@ def make_r2d(repo, argv=None):
         print(__version__)
         sys.exit(0)
 
-    args = get_argparser().parse_args(['-repo', repo])
+    custom_args = Namespace(repo=repo, run=False)
+    args = get_argparser().parse_args(namespace=custom_args)
+    print(args)
 
     r2d = Repo2Docker()
 
     if args.debug:
         r2d.log_level = logging.DEBUG
-
     r2d.load_config_file(args.config)
     if args.appendix:
         r2d.appendix = args.appendix
@@ -372,11 +374,13 @@ def make_r2d(repo, argv=None):
     return r2d
 
 
-def generate(repo):
+def repo2docker_generator(repo):
     r2d = make_r2d(repo)
     r2d.initialize()
     try:
         r2d.start()
+        image = r2d.output_image_spec
+        return image
     except BuildError as e:
         # This is only raised by us
         if r2d.log_level == logging.DEBUG:
@@ -390,4 +394,4 @@ def generate(repo):
 
 
 if __name__ == "__main__":
-    generate(repo)
+    repo2docker_generator(repo)
