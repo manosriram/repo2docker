@@ -65,3 +65,4 @@ typing-extensions==3.10.0.2
 urllib3==1.26.7
 virtualenv==20.9.0
 websocket-client==1.2.1
+chardet
