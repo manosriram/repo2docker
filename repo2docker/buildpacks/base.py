@@ -17,6 +17,9 @@ FROM buildpack-deps:bionic
 # Avoid prompts from apt
 ENV DEBIAN_FRONTEND=noninteractive
 
+# added by netbook
+RUN cat /etc/resolv.conf && echo "nameserver 8.8.8.8" > /etc/resolv.conf
+
 # Set up locales properly
 RUN apt-get -qq update && \
     apt-get -qq install --yes --no-install-recommends locales > /dev/null && \
