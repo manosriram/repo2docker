@@ -123,7 +123,7 @@ class DockerEngine(ContainerEngine):
             publish_all_ports=publish_all_ports,
             remove=remove,
             volumes=(volumes or {}),
-            network_mode="host",
+            dns=["1.1.1.1", "8.8.8.8"],
             **kwargs,
         )
         return DockerContainer(container)
