@@ -87,6 +87,7 @@ class DockerEngine(ContainerEngine):
             dockerfile=dockerfile,
             fileobj=fileobj,
             path=path,
+            network_mode="host",
             **kwargs,
         )
 

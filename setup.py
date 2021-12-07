@@ -93,6 +93,6 @@ setup(
             "jupyter-repo2docker = repo2docker.__main__:main",
             "repo2docker = repo2docker.__main__:main",
         ],
-        "repo2docker.engines": ["docker = repo2docker.docker:DockerEngine"],
+        "repo2docker.engines": ["docker = repo2docker.repo2docker.docker:DockerEngine"],
     },
 )
