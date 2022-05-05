@@ -67,6 +67,20 @@ def get_argparser():
     )
 
     argparser.add_argument(
+        "--help-all",
+        dest="help_all",
+        action="store_true",
+        help="Display all configurable options and exit.",
+    )
+
+    argparser.add_argument(
+        "--version",
+        dest="version",
+        action="store_true",
+        help="Print the repo2docker version and exit.",
+    )
+
+    argparser.add_argument(
         "--config",
         default="repo2docker_config.py",
         help="Path to config file for repo2docker",
@@ -206,14 +220,23 @@ def get_argparser():
 
     argparser.add_argument("--appendix", type=str, help=Repo2Docker.appendix.help)
 
-    argparser.add_argument("--subdir", type=str, help=Repo2Docker.subdir.help)
+    argparser.add_argument(
+        "--label",
+        dest="labels",
+        action="append",
+        help="Extra label to set on the image, in form name=value",
+        default=[],
+    )
 
     argparser.add_argument(
-        "--version",
-        dest="version",
-        action="store_true",
-        help="Print the repo2docker version and exit.",
+        "--build-arg",
+        dest="build_args",
+        action="append",
+        help="Extra build arg to pass to the build process, in form name=value",
+        default=[],
     )
+
+    argparser.add_argument("--subdir", type=str, help=Repo2Docker.subdir.help)
 
     argparser.add_argument(
         "--cache-from", action="append", default=[], help=Repo2Docker.cache_from.help
@@ -231,6 +254,8 @@ def make_r2d(repo, argv=None):
     if argv is None:
         argv = sys.argv[1:]
 
+    argparser = get_argparser()
+
     # version must be checked before parse, as repo/cmd are required and
     # will spit out an error if allowed to be parsed first.
     if "--version" in argv:
@@ -239,15 +264,33 @@ def make_r2d(repo, argv=None):
 
     custom_args = Namespace(repo=repo, run=False)
     args = get_argparser().parse_args(namespace=custom_args)
+    
     print(args)
+    
+    if "--help-all" in argv:
+        argparser.print_help()
+        print("\nAll configurable options:\n")
+        Repo2Docker().print_help(classes=True)
+        sys.exit(0)
+
+    args, traitlet_args = argparser.parse_known_args(argv)
 
     r2d = Repo2Docker()
+    r2d.parse_command_line(traitlet_args)
 
     if args.debug:
         r2d.log_level = logging.DEBUG
     r2d.load_config_file(args.config)
     if args.appendix:
         r2d.appendix = args.appendix
+
+    for l in args.labels:
+        key, _, val = l.partition("=")
+        r2d.labels[key] = val
+
+    for a in args.build_args:
+        key, _, val = a.partition("=")
+        r2d.extra_build_args[key] = val
 
     r2d.repo = args.repo
     r2d.ref = args.ref

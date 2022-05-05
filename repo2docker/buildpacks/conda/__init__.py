@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from ruamel.yaml import YAML
 
 from ..base import BaseImage
-from .._r_base import rstudio_base_scripts, IRKERNEL_VERSION
+from .._r_base import rstudio_base_scripts
 from ...utils import is_local_pip_requirement
 
 # pattern for parsing conda dependency line
@@ -51,7 +51,14 @@ class CondaBuildPack(BaseImage):
         env = super().get_build_env() + [
             ("CONDA_DIR", "${APP_BASE}/conda"),
             ("NB_PYTHON_PREFIX", "${CONDA_DIR}/envs/notebook"),
+            # We install npm / node from conda-forge
+            ("NPM_DIR", "${APP_BASE}/npm"),
+            ("NPM_CONFIG_GLOBALCONFIG", "${NPM_DIR}/npmrc"),
             ("NB_ENVIRONMENT_FILE", self._nb_environment_file),
+            ("MAMBA_ROOT_PREFIX", "${CONDA_DIR}"),
+            # this exe should be used for installs after bootstrap with micromamba
+            # switch this to /usr/local/bin/micromamba to use it for all installs
+            ("MAMBA_EXE", "${CONDA_DIR}/bin/mamba"),
         ]
         if self._nb_requirements_file:
             env.append(("NB_REQUIREMENTS_FILE", self._nb_requirements_file))
@@ -85,6 +92,8 @@ class CondaBuildPack(BaseImage):
         if self.py2:
             path.insert(0, "${KERNEL_PYTHON_PREFIX}/bin")
         path.insert(0, "${NB_PYTHON_PREFIX}/bin")
+        # This is at the end of $PATH, for backwards compat reasons
+        path.append("${NPM_DIR}/bin")
         return path
 
     def get_build_scripts(self):
@@ -93,7 +102,7 @@ class CondaBuildPack(BaseImage):
 
         All scripts here should be independent of contents of the repository.
 
-        This sets up through `install-miniforge.bash` (found in this directory):
+        This sets up through `install-base-env.bash` (found in this directory):
 
         - a directory for the conda environment and its ownership by the
           notebook user
@@ -110,10 +119,17 @@ class CondaBuildPack(BaseImage):
                 "root",
                 r"""
                 TIMEFORMAT='time: %3R' \
-                bash -c 'time /tmp/install-miniforge.bash' && \
-                rm -rf /tmp/install-miniforge.bash /tmp/env
+                bash -c 'time /tmp/install-base-env.bash' && \
+                rm -rf /tmp/install-base-env.bash /tmp/env
                 """,
-            )
+            ),
+            (
+                "root",
+                r"""
+                mkdir -p ${NPM_DIR} && \
+                chown -R ${NB_USER}:${NB_USER} ${NPM_DIR}
+                """,
+            ),
         ]
 
     major_pythons = {"2": "2.7", "3": "3.7"}
@@ -134,7 +150,7 @@ class CondaBuildPack(BaseImage):
 
         """
         files = {
-            "conda/install-miniforge.bash": "/tmp/install-miniforge.bash",
+            "conda/install-base-env.bash": "/tmp/install-base-env.bash",
             "conda/activate-conda.sh": "/etc/profile.d/activate-conda.sh",
         }
         py_version = self.python_version
@@ -320,14 +336,16 @@ class CondaBuildPack(BaseImage):
         environment_yml = self.binder_path("environment.yml")
         env_prefix = "${KERNEL_PYTHON_PREFIX}" if self.py2 else "${NB_PYTHON_PREFIX}"
         if os.path.exists(environment_yml):
+            # TODO: when using micromamba, we call $MAMBA_EXE install -p ...
+            # whereas mamba/conda need `env update -p ...` when it's an env.yaml file
             scripts.append(
                 (
                     "${NB_USER}",
                     r"""
                 TIMEFORMAT='time: %3R' \
-                bash -c 'time mamba env update -p {0} -f "{1}" && \
-                time mamba clean --all -f -y && \
-                mamba list -p {0} \
+                bash -c 'time ${{MAMBA_EXE}} env update -p {0} --file "{1}" && \
+                time ${{MAMBA_EXE}} clean --all -f -y && \
+                ${{MAMBA_EXE}} list -p {0} \
                 '
                 """.format(
                         env_prefix, environment_yml
@@ -344,15 +362,15 @@ class CondaBuildPack(BaseImage):
                 (
                     "${NB_USER}",
                     r"""
-                mamba install -p {0} r-base{1} r-irkernel={2} r-devtools -y && \
-                mamba clean --all -f -y && \
-                mamba list -p {0}
+                ${{MAMBA_EXE}} install -p {0} r-base{1} r-irkernel=1.2 r-devtools -y && \
+                ${{MAMBA_EXE}} clean --all -f -y && \
+                ${{MAMBA_EXE}} list -p {0}
                 """.format(
-                        env_prefix, r_pin, IRKERNEL_VERSION
+                        env_prefix, r_pin
                     ),
                 )
             )
-            scripts += rstudio_base_scripts()
+            scripts += rstudio_base_scripts(self.r_version)
             scripts += [
                 (
                     "root",
