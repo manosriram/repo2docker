@@ -254,7 +254,7 @@ def make_r2d(repo, argv=None):
     if argv is None:
         argv = sys.argv[1:]
 
-    argparser = get_argparser()
+    #  argparser = get_argparser()
 
     # version must be checked before parse, as repo/cmd are required and
     # will spit out an error if allowed to be parsed first.
@@ -264,7 +264,6 @@ def make_r2d(repo, argv=None):
 
     custom_args = Namespace(repo=repo, run=False)
     args = get_argparser().parse_args(namespace=custom_args)
-    
     print(args)
     
     if "--help-all" in argv:
@@ -273,10 +272,10 @@ def make_r2d(repo, argv=None):
         Repo2Docker().print_help(classes=True)
         sys.exit(0)
 
-    args, traitlet_args = argparser.parse_known_args(argv)
+    #  args, traitlet_args = argparser.parse_known_args(argv)
 
     r2d = Repo2Docker()
-    r2d.parse_command_line(traitlet_args)
+    #  r2d.parse_command_line(traitlet_args)
 
     if args.debug:
         r2d.log_level = logging.DEBUG
@@ -284,13 +283,13 @@ def make_r2d(repo, argv=None):
     if args.appendix:
         r2d.appendix = args.appendix
 
-    for l in args.labels:
-        key, _, val = l.partition("=")
-        r2d.labels[key] = val
+    #  for l in args.labels:
+        #  key, _, val = l.partition("=")
+        #  r2d.labels[key] = val
 
-    for a in args.build_args:
-        key, _, val = a.partition("=")
-        r2d.extra_build_args[key] = val
+    #  for a in args.build_args:
+        #  key, _, val = a.partition("=")
+        #  r2d.extra_build_args[key] = val
 
     r2d.repo = args.repo
     r2d.ref = args.ref
@@ -421,7 +420,9 @@ def repo2docker_generator(repo):
     r2d = make_r2d(repo)
     r2d.initialize()
     try:
+
         r2d.start()
+
         image = r2d.output_image_spec
         return image
     except BuildError as e:
